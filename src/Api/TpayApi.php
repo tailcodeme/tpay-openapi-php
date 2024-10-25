@@ -7,6 +7,7 @@ use Tpay\OpenApi\Api\Accounts\AccountsApi;
 use Tpay\OpenApi\Api\Authorization\AuthorizationApi;
 use Tpay\OpenApi\Api\Refunds\RefundsApi;
 use Tpay\OpenApi\Api\Reports\ReportsApi;
+use Tpay\OpenApi\Api\Tokens\TokensApi;
 use Tpay\OpenApi\Api\Transactions\TransactionsApi;
 use Tpay\OpenApi\Model\Objects\Authorization\Token;
 use Tpay\OpenApi\Utilities\TpayException;
@@ -18,6 +19,7 @@ class TpayApi
         'Accounts' => AccountsApi::class,
         'Authorization' => AuthorizationApi::class,
         'Transactions' => TransactionsApi::class,
+        'Tokens' => TokensApi::class,
         'Refunds' => RefundsApi::class,
         'Reports' => ReportsApi::class,
     ];
@@ -36,6 +38,9 @@ class TpayApi
 
     /** @var null|TransactionsApi */
     private $transactions;
+
+    /** @var null|TokensApi */
+    private $tokens;
 
     /** @var null|Token */
     private $token;
@@ -109,6 +114,8 @@ class TpayApi
                 return $this->refunds();
             case 'Transactions':
                 return $this->transactions();
+            case 'Tokens':
+                return $this->tokens();
         }
 
         throw new RuntimeException(sprintf('Property %s::%s does not exist!', __CLASS__, $propertyName));
@@ -203,6 +210,22 @@ class TpayApi
         }
 
         return $this->transactions;
+    }
+
+    /** @return TokensApi */
+    public function tokens()
+    {
+        $this->authorize();
+        if (null === $this->tokens) {
+            $this->tokens = (new TokensApi($this->token, $this->productionMode))
+                ->overrideApiUrl($this->apiUrl);
+
+            if ($this->clientName) {
+                $this->tokens->setClientName($this->clientName);
+            }
+        }
+
+        return $this->tokens;
     }
 
     private function authorize()
