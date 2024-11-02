@@ -2,6 +2,9 @@
 
 namespace Tpay\OpenApi\Model\Objects\NotificationBody;
 
+use Tpay\OpenApi\Model\Fields\Notification\CardBrand;
+use Tpay\OpenApi\Model\Fields\Notification\CardExpiryDate;
+use Tpay\OpenApi\Model\Fields\Notification\CardTail;
 use Tpay\OpenApi\Model\Fields\Notification\CardToken;
 use Tpay\OpenApi\Model\Fields\Notification\Crc;
 use Tpay\OpenApi\Model\Fields\Notification\Description;
@@ -39,6 +42,9 @@ class BasicPayment extends Objects
         'masterpass' => Masterpass::class,
         'tr_channel' => TransactionChannel::class,
         'card_token' => CardToken::class,
+        'token_expiry_date' => CardExpiryDate::class,
+        'card_tail' => CardTail::class,
+        'card_brand' => CardBrand::class,
     ];
 
     /** @var MerchantId */
@@ -88,6 +94,15 @@ class BasicPayment extends Objects
 
     /** @var CardToken */
     public $card_token;
+
+    /** @var CardExpiryDate */
+    public $token_expiry_date;
+
+    /** @var CardTail */
+    public $card_tail;
+
+    /** @var CardBrand */
+    public $card_brand;
 
     public function getRequiredFields()
     {
