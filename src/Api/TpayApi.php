@@ -9,6 +9,7 @@ use Tpay\OpenApi\Api\Refunds\RefundsApi;
 use Tpay\OpenApi\Api\Reports\ReportsApi;
 use Tpay\OpenApi\Api\Tokens\TokensApi;
 use Tpay\OpenApi\Api\Transactions\TransactionsApi;
+use Tpay\OpenApi\Api\Wallet\WalletApi;
 use Tpay\OpenApi\Model\Objects\Authorization\Token;
 use Tpay\OpenApi\Utilities\TpayException;
 
@@ -20,6 +21,7 @@ class TpayApi
         'Authorization' => AuthorizationApi::class,
         'Transactions' => TransactionsApi::class,
         'Tokens' => TokensApi::class,
+        'Wallet' => WalletApi::class,
         'Refunds' => RefundsApi::class,
         'Reports' => ReportsApi::class,
     ];
@@ -41,6 +43,9 @@ class TpayApi
 
     /** @var null|TokensApi */
     private $tokens;
+
+    /** @var null|WalletApi */
+    private $wallet;
 
     /** @var null|Token */
     private $token;
@@ -64,12 +69,12 @@ class TpayApi
     private $clientName;
 
     /**
-     * @param string      $clientId
-     * @param string      $clientSecret
-     * @param bool        $productionMode
-     * @param string      $scope
-     * @param null|string $apiUrlOverride
-     * @param null|string $clientName
+     * @param  string  $clientId
+     * @param  string  $clientSecret
+     * @param  bool  $productionMode
+     * @param  string  $scope
+     * @param  null|string  $apiUrlOverride
+     * @param  null|string  $clientName
      */
     public function __construct($clientId, $clientSecret, $productionMode = false, $scope = 'read', $apiUrlOverride = null, $clientName = null)
     {
@@ -77,12 +82,12 @@ class TpayApi
         $this->clientSecret = $clientSecret;
         $this->productionMode = $productionMode;
         $this->scope = $scope;
-        $this->apiUrl = true === $this->productionMode
+        $this->apiUrl = $this->productionMode === true
             ? ApiAction::TPAY_API_URL_PRODUCTION
             : ApiAction::TPAY_API_URL_SANDBOX;
         $this->clientName = $clientName;
-        if (null !== $apiUrlOverride) {
-            if (!filter_var($apiUrlOverride, FILTER_VALIDATE_URL)) {
+        if ($apiUrlOverride !== null) {
+            if (! filter_var($apiUrlOverride, FILTER_VALIDATE_URL)) {
                 throw new RuntimeException(sprintf('Invalid URL provided: %s', $apiUrlOverride));
             }
             $this->apiUrl = $apiUrlOverride;
@@ -90,8 +95,7 @@ class TpayApi
     }
 
     /**
-     * @param string $propertyName
-     *
+     * @param  string  $propertyName
      * @return AccountsApi|AuthorizationApi|RefundsApi|TransactionsApi
      */
     public function __get($propertyName)
@@ -116,6 +120,8 @@ class TpayApi
                 return $this->transactions();
             case 'Tokens':
                 return $this->tokens();
+            case 'Wallet':
+                return $this->wallet();
         }
 
         throw new RuntimeException(sprintf('Property %s::%s does not exist!', __CLASS__, $propertyName));
@@ -136,7 +142,7 @@ class TpayApi
     public function accounts()
     {
         $this->authorize();
-        if (null === $this->accounts) {
+        if ($this->accounts === null) {
             $this->accounts = (new AccountsApi($this->token, $this->productionMode))
                 ->overrideApiUrl($this->apiUrl);
 
@@ -152,7 +158,7 @@ class TpayApi
     public function authorization()
     {
         $this->authorize();
-        if (null === $this->authorization) {
+        if ($this->authorization === null) {
             $this->authorization = (new AuthorizationApi($this->token, $this->productionMode))
                 ->overrideApiUrl($this->apiUrl);
 
@@ -168,7 +174,7 @@ class TpayApi
     public function refunds()
     {
         $this->authorize();
-        if (null === $this->refunds) {
+        if ($this->refunds === null) {
             $this->refunds = (new RefundsApi($this->token, $this->productionMode))
                 ->overrideApiUrl($this->apiUrl);
 
@@ -184,7 +190,7 @@ class TpayApi
     public function reports()
     {
         $this->authorize();
-        if (null === $this->reports) {
+        if ($this->reports === null) {
             $this->reports = (new ReportsApi($this->token, $this->productionMode))
                 ->overrideApiUrl($this->apiUrl);
 
@@ -200,7 +206,7 @@ class TpayApi
     public function transactions()
     {
         $this->authorize();
-        if (null === $this->transactions) {
+        if ($this->transactions === null) {
             $this->transactions = (new TransactionsApi($this->token, $this->productionMode))
                 ->overrideApiUrl($this->apiUrl);
 
@@ -216,7 +222,7 @@ class TpayApi
     public function tokens()
     {
         $this->authorize();
-        if (null === $this->tokens) {
+        if ($this->tokens === null) {
             $this->tokens = (new TokensApi($this->token, $this->productionMode))
                 ->overrideApiUrl($this->apiUrl);
 
@@ -228,6 +234,22 @@ class TpayApi
         return $this->tokens;
     }
 
+    /** @return WalletApi */
+    public function wallet()
+    {
+        $this->authorize();
+        if ($this->wallet === null) {
+            $this->wallet = (new WalletApi($this->token, $this->productionMode))
+                ->overrideApiUrl($this->apiUrl);
+
+            if ($this->clientName) {
+                $this->wallet->setClientName($this->clientName);
+            }
+        }
+
+        return $this->wallet;
+    }
+
     private function authorize()
     {
         if (
@@ -237,7 +259,7 @@ class TpayApi
             return;
         }
 
-        $authApi = (new AuthorizationApi(new Token(), $this->productionMode))->overrideApiUrl($this->apiUrl);
+        $authApi = (new AuthorizationApi(new Token, $this->productionMode))->overrideApiUrl($this->apiUrl);
 
         if ($this->clientName) {
             $authApi->setClientName($this->clientName);
@@ -250,7 +272,7 @@ class TpayApi
         ];
         $authApi->getNewToken($fields);
 
-        if (200 !== $authApi->getHttpResponseCode()) {
+        if ($authApi->getHttpResponseCode() !== 200) {
             throw new TpayException(
                 sprintf(
                     'Authorization error. HTTP code: %d, response: %s',
@@ -260,7 +282,7 @@ class TpayApi
             );
         }
 
-        $this->token = new Token();
+        $this->token = new Token;
         $this->token->setObjectValues($this->token, $authApi->getRequestResult());
     }
 }
